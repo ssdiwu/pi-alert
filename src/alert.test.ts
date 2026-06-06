@@ -183,7 +183,22 @@ describe("buildAlertTitle", () => {
   test("formats the title with the project root directory name", () => {
     expect(buildAlertTitle("/Users/max/dev/pi-alert")).toBe("pi — pi-alert")
     expect(buildAlertTitle("/Users/max/dev/pi-alert/")).toBe("pi — pi-alert")
-    expect(buildAlertTitle(undefined)).toBe("pi")
+    expect(buildAlertTitle(undefined)).toBe("pi — pi")
+  })
+
+  test("prepends the session name when provided", () => {
+    expect(buildAlertTitle("/Users/max/dev/pi-alert", "fix-notify-bug")).toBe(
+      "pi-alert · fix-notify-bug",
+    )
+  })
+
+  test("falls back to the project format when the session name is empty or whitespace", () => {
+    expect(buildAlertTitle("/Users/max/dev/pi-alert", "")).toBe("pi — pi-alert")
+    expect(buildAlertTitle("/Users/max/dev/pi-alert", "   ")).toBe("pi — pi-alert")
+  })
+
+  test("uses the session name even when the working directory is missing", () => {
+    expect(buildAlertTitle(undefined, "design-review")).toBe("pi · design-review")
   })
 })
 

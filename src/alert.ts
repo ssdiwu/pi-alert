@@ -1,6 +1,6 @@
 import { platform } from "node:os"
 import { basename } from "node:path"
-import type { AgentEndEvent, ExtensionAPI } from "@mariozechner/pi-coding-agent"
+import type { AgentEndEvent, ExtensionAPI, SessionStartEvent } from "@mariozechner/pi-coding-agent"
 
 const APP_NAME = "pi"
 const FALLBACK_MESSAGE = "Agent finished its turn"
@@ -50,6 +50,15 @@ type AlertRunState = {
 export default function alertExtension(pi: ExtensionAPI) {
   let currentRun: AlertRunState | null = null
 
+  pi.on("session_start", (_event: SessionStartEvent, ctx) => {
+    // Default the session name to the project directory so notification
+    // titles stay meaningful even when the user did not pass --name.
+    if (pi.getSessionName()) return
+    if (!ctx.cwd) return
+    const projectDir = basename(ctx.cwd.replace(/[\\/]+$/, "") || ctx.cwd)
+    if (projectDir) pi.setSessionName(projectDir)
+  })
+
   pi.on("agent_start", () => {
     currentRun = createRunState(Date.now())
   })
@@ -84,7 +93,7 @@ export default function alertExtension(pi: ExtensionAPI) {
     const liveSummary = snapshotRunState(currentRun)
     const fallbackSummary = summarizeAgentEndMessages(event.messages)
     const message = buildAlertMessage(mergeAlertSummaries(liveSummary, fallbackSummary))
-    const title = buildAlertTitle(ctx.cwd)
+    const title = buildAlertTitle(ctx.cwd, pi.getSessionName())
 
     currentRun = null
     await notifyBestAvailable(pi, title, message)
@@ -510,14 +519,13 @@ function normalizeToolPath(path: string): string | null {
   return normalizedPath ? normalizedPath : null
 }
 
-export function buildAlertTitle(cwd: string | null | undefined): string {
-  if (!cwd) {
-    return APP_NAME
+export function buildAlertTitle(cwd: string | null | undefined, sessionName?: string): string {
+  const projectDir = cwd ? basename(cwd.replace(/[\\/]+$/, "") || cwd) : undefined
+  const base = projectDir || APP_NAME
+  if (sessionName && sessionName.trim().length > 0) {
+    return `${base} · ${sessionName.trim()}`
   }
-
-  const normalizedCwd = cwd.replace(/[\\/]+$/, "") || cwd
-  const rootDir = basename(normalizedCwd)
-  return rootDir ? `${APP_NAME} — ${rootDir}` : APP_NAME
+  return `${APP_NAME} — ${base}`
 }
 
 export function buildAlertMessage(summary: AlertSummaryInput): string {

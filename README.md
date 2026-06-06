@@ -20,6 +20,15 @@ Install the extension and notifications will fire automatically whenever the age
 
 Notifications use the project root directory in the title (for example `pi — pi-alert`) and include an activity summary with elapsed time in the body.
 
+### Session name in the title
+
+The notification title includes the current pi session name when one is set:
+
+- If you start pi with `--name "fix-notify-bug"`, the title becomes `pi-alert · fix-notify-bug` (where `pi-alert` is the project directory name).
+- If no session name is set, the title falls back to `pi — <project-directory>` and the extension will default the session name to the project directory so that subsequent agent runs (and `/resume`) keep a meaningful name.
+
+Set the name explicitly with `--name`, from inside pi via `setSessionName`, or let the extension auto-name the session on startup.
+
 Alert text prioritizes the most useful activity summary from the completed run:
 
 - updated files
